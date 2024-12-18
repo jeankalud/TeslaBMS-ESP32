@@ -1,13 +1,14 @@
 #pragma once
 #include "config.h"
 #include "BMSModule.h"
-#include <esp32_can.h>
+//#include <esp32_can.h>
 
 class BMSModuleManager
 {
 public:
     BMSModuleManager();
     void balanceCells();
+    void balanceCell(int cellNumber);
     void setupBoards();
     void findBoards();
     void renumberBoardIDs();
@@ -20,7 +21,7 @@ public:
     float getPackVoltage();
     float getAvgTemperature();
     float getAvgCellVolt();
-    void processCANMsg(CAN_FRAME &frame);
+//    void processCANMsg(CAN_FRAME &frame);
     void printPackSummary();
     void printPackDetails();
 

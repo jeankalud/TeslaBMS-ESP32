@@ -289,6 +289,9 @@ void BMSModule::balanceCells()
     uint8_t buff[30];
     uint8_t balance = 0;//bit 0 - 5 are to activate cell balancing 1-6
 
+    // Define the balance time in minutes as a constant
+    const int balanceMinutes = 30;  // Set to 30 minutes as the constant balance time
+
     payload[0] = moduleAddress << 1;
     payload[1] = REG_BAL_CTRL;
     payload[2] = 0; //writing zero to this register resets balance time and must be done before setting balance resistors again.
@@ -305,11 +308,16 @@ void BMSModule::balanceCells()
         if (balanceState[i] == 1) balance |= (1<<i);
     }
 
+    // Calculate the balance time in the register based on the constant balanceMinutes
+    uint8_t balanceTime = balanceMinutes * 60 / 2;  // Assuming the register increments in 2-second steps
+    if (balanceTime > 0xFF) balanceTime = 0xFF; // Limit to 255 (max value for 1 byte)
+
+
     if (balance != 0) //only send balance command when needed
     {
         payload[0] = moduleAddress << 1;
         payload[1] = REG_BAL_TIME;
-        payload[2] = 0x82; //balance for two minutes if nobody says otherwise before then
+        payload[2] = balanceTime; // Set calculated balance time in register
         BMSUtil::sendData(payload, 3, true);
         delay(2);
         BMSUtil::getReply(buff, 30);
@@ -341,6 +349,88 @@ void BMSModule::balanceCells()
         }
     }
 }
+
+void BMSModule::balanceCell(int cellNumber)
+{
+    uint8_t payload[4];
+    uint8_t buff[30];
+    uint8_t cellMask = 0;  // Mask to toggle the specific cell's balancing state
+
+    // Define the balance time in minutes as a constant
+    const int balanceMinutes = 30;  // Set to 30 minutes as the constant balance time
+
+    // Check that cellNumber is between 1 and 6
+    if (cellNumber < 1 || cellNumber > 6) {
+        Logger::debug("Invalid cell number. Must be between 1 and 6.");
+        return;
+    }
+
+    // Toggle the balancing state of the specified cell
+    if (balanceState[cellNumber - 1] == 0) {
+        balanceState[cellNumber - 1] = 1;  // Turn balancing on
+        Logger::console("Turning balancing ON for cell #%i for %i minutes", cellNumber, balanceMinutes);
+    } else {
+        balanceState[cellNumber - 1] = 0;  // Turn balancing off
+        Logger::console("Turning balancing OFF for %i", cellNumber);
+    }
+
+    // Build the cell balancing mask (set bit for the selected cell)
+    for (int i = 0; i < 6; i++) {
+        if (balanceState[i] == 1) {
+            cellMask |= (1 << i);  // Set the bit corresponding to the cell
+        }
+    }
+
+    // Calculate the balance time in the register based on the constant balanceMinutes
+    uint8_t balanceTime = balanceMinutes * 60 / 2;  // Assuming the register increments in 2-second steps
+    if (balanceTime > 0xFF) balanceTime = 0xFF; // Limit to 255 (max value for 1 byte)
+
+    // Send the data to reset balancing time first
+    payload[0] = moduleAddress << 1;
+    payload[1] = REG_BAL_CTRL;
+    payload[2] = 0; // Writing zero to this register resets balance time
+    BMSUtil::sendData(payload, 3, true);
+    delay(2);
+    BMSUtil::getReply(buff, 30);
+
+    // Send balance time configuration
+    payload[0] = moduleAddress << 1;
+    payload[1] = REG_BAL_TIME;
+    payload[2] = balanceTime;
+    BMSUtil::sendData(payload, 3, true);
+    delay(2);
+    BMSUtil::getReply(buff, 30);
+
+    // Only send balance command when needed (i.e., when cell balancing is enabled)
+    if (cellMask != 0) {
+        payload[0] = moduleAddress << 1;
+        payload[1] = REG_BAL_CTRL;
+        payload[2] = cellMask;  // Write the balancing state mask to the register
+        BMSUtil::sendData(payload, 3, true);
+        delay(2);
+        BMSUtil::getReply(buff, 30);
+
+        // Optionally read back the registers for debugging
+        if (Logger::isDebug()) {
+            Logger::debug("Reading back balancing registers:");
+            delay(50);
+            payload[0] = moduleAddress << 1;
+            payload[1] = REG_BAL_TIME;
+            payload[2] = 1; // Expecting only 1 byte back
+            BMSUtil::sendData(payload, 3, false);
+            delay(2);
+            BMSUtil::getReply(buff, 30);
+
+            payload[0] = moduleAddress << 1;
+            payload[1] = REG_BAL_CTRL;
+            payload[2] = 1; // Also only expecting one byte
+            BMSUtil::sendData(payload, 3, false);
+            delay(2);
+            BMSUtil::getReply(buff, 30);
+        }
+    }
+}
+
 
 uint8_t BMSModule::getBalancingState(int cell)
 {

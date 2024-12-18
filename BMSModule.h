@@ -30,6 +30,7 @@ public:
     bool isExisting();
     void setExists(bool ex);
     void balanceCells();
+    void balanceCell(int cellNumber);
     uint8_t getBalancingState(int cell);
 
 private:

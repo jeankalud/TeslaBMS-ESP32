@@ -2,14 +2,14 @@
 
 #include <Arduino.h>
 
-extern HardwareSerial Serial2;
+//extern HardwareSerial Serial1;
 
 //Set to the proper port for your USB connection - SerialUSB on Due (Native) or Serial for Due (Programming) or Teensy
 #define SERIALCONSOLE   Serial
 
 //Define this to be the serial port the Tesla BMS modules are connected to.
 //On the Due you need to use a USART port (Serial1, Serial2, Serial3) and update the call to serialSpecialInit if not Serial1
-#define SERIAL  Serial2
+#define SERIAL  Serial1
 
 #define REG_DEV_STATUS      0
 #define REG_GPAI            1
@@ -32,7 +32,7 @@ extern HardwareSerial Serial2;
 #define REG_ADC_CONV        0x34
 #define REG_ADDR_CTRL       0x3B
 
-#define MAX_MODULE_ADDR     0x3E
+#define MAX_MODULE_ADDR     0x3E //0x3E
 
 #define EEPROM_VERSION      0x10    //update any time EEPROM struct below is changed.
 #define EEPROM_PAGE         0

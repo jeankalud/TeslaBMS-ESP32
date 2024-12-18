@@ -47,9 +47,9 @@ void SerialConsole::init() {
     state = STATE_ROOT_MENU;
     loopcount=0;
     cancel=false;
-    printPrettyDisplay = false;
+    printPrettyDisplay = true;
     prettyCounter = 0;
-    whichDisplay = 0;
+    whichDisplay = 1;
 }
 
 void SerialConsole::loop() {  
@@ -76,13 +76,15 @@ void SerialConsole::printMenu() {
     Logger::console("   C = Clear all board faults");
     Logger::console("   F = Find all connected boards");
     Logger::console("   R = Renumber connected boards in sequence");
-    Logger::console("   B = Attempt balancing for 5 seconds");
+    Logger::console("   B = Manual start balancing");
+    Logger::console("   b = Manual stop balancing");
+    Logger::console("   1 to 6 = Toggle balancing on cell 1 to 6");
     Logger::console("   p = Toggle output of pack summary every 3 seconds");
     Logger::console("   d = Toggle output of pack details every 3 seconds");
 
     Logger::console("   LOGLEVEL=%i - set log level (0=debug, 1=info, 2=warn, 3=error, 4=off)", Logger::getLogLevel());
-    Logger::console("   CANSPEED=%i - set first CAN bus speed", settings.canSpeed);
-    Logger::console("   BATTERYID=%i - Set battery ID for CAN protocol (1-14)", settings.batteryID);
+    //Logger::console("   CANSPEED=%i - set first CAN bus speed", settings.canSpeed);
+    //Logger::console("   BATTERYID=%i - Set battery ID for CAN protocol (1-14)", settings.batteryID);
 
     Logger::console("\nBATTERY MANAGEMENT CONTROLS\n");
     Logger::console("   VOLTLIMHI=%f - High limit for cells in volts", settings.OverVSetpoint);
@@ -205,7 +207,7 @@ void SerialConsole::handleConfigCmd() {
     } else if (cmdString == String("BATTERYID")) {
         if (newValue > 0 && newValue < 15) {
             settings.batteryID = newValue;
-            bms.setBatteryID();
+            //bms.setBatteryID();
             needEEPROMWrite = true;
             Logger::console("Battery ID set to: %i", newValue);
         }
@@ -291,6 +293,12 @@ void SerialConsole::handleShortCmd() {
         break;
     case 'B':
         bms.balanceCells();
+        break;
+    case 'b':
+        bms.balanceCells();
+        break;
+    case '1': case '2': case '3': case '4': case '5': case '6':
+        bms.balanceCell(cmdBuffer[0] - '0'); // Basically removing 48 to convert from ascii to int
         break;
     case 'p':
         if (whichDisplay == 1 && printPrettyDisplay) whichDisplay = 0;
